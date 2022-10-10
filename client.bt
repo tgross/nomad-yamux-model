@@ -1,0 +1,33 @@
+#!/usr/bin/env bpftrace
+#include <linux/socket.h>
+
+struct ipv4 {
+    uint8_t bytes[16];
+};
+
+struct TcpAddr {
+  struct ipv4* addr;
+  long len;
+  long cap;
+  int port;
+};
+
+uprobe:/usr/local/bin/nomad:"github.com/hashicorp/nomad/client.(*Client).updateNodeStatus"
+{
+    printf("[%s] updating node status\n",
+                 strftime("%H:%M:%S", nsecs)
+                 );
+}
+
+uprobe:/usr/local/bin/nomad:"github.com/hashicorp/nomad/helper/pool.(*ConnPool).RPC"
+{
+    $addr = (struct TcpAddr *) reg("si");
+    $bytes = $addr->addr->bytes;
+
+    printf("[%s] sending %s RPC to addr=%d.%d.%d.%d:%d in region=%s\n",
+                 strftime("%H:%M:%S", nsecs),
+                 str(reg("r8"), reg("r9")),
+                 $bytes[12], $bytes[13], $bytes[14], $bytes[15], $addr->port,
+                 str(reg("bx"), reg("cx"))
+                 );
+}

@@ -1,0 +1,9 @@
+#!/usr/bin/env bpftrace
+
+uprobe:/usr/local/bin/nomad:"github.com/hashicorp/nomad/nomad.(*nodeHeartbeater).resetHeartbeatTimer"
+{
+    printf("[%s] got heatbeat for %s\n",
+                 strftime("%H:%M:%S", nsecs),
+                 str(reg("bx"), reg("cx"))
+                 );
+}
